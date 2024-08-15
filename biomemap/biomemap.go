@@ -157,8 +157,8 @@ func FillChunk(
 			b := SelectBiome(Continentalness, Erosion, Temperature, Humidity, Weirdness)
 
 			// Apply Biome only on every subchunk
-			for y := min; y < max; y++ {
-				chunk.SetBiome(x, y*16, z, b)
+			for y := min; y < max; y += 16 {
+				chunk.SetBiome(x, y, z, b)
 			}
 		}
 	}

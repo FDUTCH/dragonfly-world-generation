@@ -2,6 +2,7 @@ package worldgen
 
 import (
 	"github.com/Ikarolyi/dragonfly-world-generation/biomemap"
+	"github.com/Ikarolyi/dragonfly-world-generation/terrain"
 	"github.com/Ikarolyi/dragonfly-world-generation/wgrandom"
 	"github.com/Ikarolyi/dragonfly-world-generation/worldgenconfig"
 	"github.com/df-mc/dragonfly/server/world"
@@ -15,7 +16,7 @@ type WorldGenerator struct {
 
 func (gen WorldGenerator) GenerateChunk(pos world.ChunkPos, chunk *chunk.Chunk) {
 	biomemap.FillChunk(pos, chunk, gen.WGRandom, gen.WGConfig)
-	// terrain.GenerateTerrain(pos, chunk, gen.WGRandom)
+	terrain.GenerateTerrain(pos, chunk, gen.WGRandom)
 }
 
 func NewWorldGenerator(Seed int64) func(world.Dimension) world.Generator {
