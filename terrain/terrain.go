@@ -29,7 +29,7 @@ func GenerateTerrain(
 			E := wgrandom.ErosionSpline.At(WGRand.Erosion.Noise2D(NoiseX, NoiseZ))
 			PV := wgrandom.PVSpline.At(wgrandom.PeaksValleys(WGRand.Weirdness.Noise2D(NoiseX, NoiseZ)))
 
-			height := (E*175)+(C*39)+(PV * 15)
+			height := (E*175) + (C*39) + (PV * 15)
 
 			for y := min; y < max; y++ {
 				NoiseY := float64(y) / wgrandom.OVERWORLD_HEIGHT_SCALE

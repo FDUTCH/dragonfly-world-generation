@@ -141,12 +141,12 @@ func FillChunk(
 	WGRand *wgrandom.WGRandom,
 	WGConfig worldgenconfig.WGConfig,
 ) {
-	min, max := chunk.SubIndex(int16(chunk.Range().Min())), chunk.SubIndex(int16(chunk.Range().Max()))
+	min, max := int16(chunk.Range().Min()), int16(chunk.Range().Max())
 	chunkWorldPos := []float64{float64(chunkPos[0]) * 16, float64(chunkPos[1]) * 16}
 
 	for x := uint8(0); x < 16; x++ {
 		for z := uint8(0); z < 16; z++ {
-			NoiseX, NoiseY := chunkWorldPos[0]+float64(x), chunkWorldPos[1]+float64(z)
+			NoiseX, NoiseY := (chunkWorldPos[0]+float64(x))/wgrandom.OVERWORLD_SCALE, (chunkWorldPos[1]+float64(z))/wgrandom.OVERWORLD_SCALE
 
 			Continentalness := WGRand.Continentalness.Noise2D(NoiseX, NoiseY)
 			Erosion := WGRand.Erosion.Noise2D(NoiseX, NoiseY)
@@ -157,9 +157,9 @@ func FillChunk(
 			b := SelectBiome(Continentalness, Erosion, Temperature, Humidity, Weirdness)
 
 			// Apply Biome only on every subchunk
-			for y := min; y < max; y += 16 {
+			for y := min; y < max; y++ {
 				chunk.SetBiome(x, y, z, b)
-			}
+			} 
 		}
 	}
 }

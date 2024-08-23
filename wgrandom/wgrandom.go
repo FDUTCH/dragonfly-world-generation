@@ -2,7 +2,6 @@ package wgrandom
 
 import (
 	"math"
-
 	"github.com/aquilax/go-perlin"
 	"github.com/cnkei/gospline"
 )
@@ -16,13 +15,16 @@ const OVERWORLD_SCALE = 171.103
 const OVERWORLD_HEIGHT_SCALE = 85.5515
 const DEPTH_SCALE = 50
 
+const SURFACE_SCALE = 2.138
+
 const (
 	SEED_CONTINENTALNESS = iota
-	SEED_EROSION         = iota
-	SEED_TEMPERATURE     = iota
-	SEED_HUMIDITY        = iota
-	SEED_DENSITY         = iota
-	SEED_WEIRDNESS       = iota
+	SEED_EROSION
+	SEED_TEMPERATURE
+	SEED_HUMIDITY
+	SEED_DENSITY
+	SEED_WEIRDNESS
+	SEED_SURFACE
 )
 
 type SubSeed int64
@@ -38,6 +40,8 @@ type WGRandom struct {
 
 	Density   *perlin.Perlin
 	Weirdness *perlin.Perlin
+
+	Surface *perlin.Perlin
 }
 
 func New(Seed int64) *WGRandom {
@@ -47,12 +51,13 @@ func New(Seed int64) *WGRandom {
 	Humidity := perlin.NewPerlin(ALPHA, BETA, ITERATIONS, Seed+SEED_HUMIDITY)
 	Density := perlin.NewPerlin(2, BETA, ITERATIONS, Seed+SEED_DENSITY)
 	Weirdness := perlin.NewPerlin(2, BETA, ITERATIONS, Seed+SEED_WEIRDNESS)
+	Surface := perlin.NewPerlin(2, BETA, ITERATIONS, Seed+SEED_SURFACE)
 
-	return &WGRandom{Seed, Continentalness, Erosion, Temperature, Humidity, Density, Weirdness}
+	return &WGRandom{Seed, Continentalness, Erosion, Temperature, Humidity, Density, Weirdness, Surface}
 }
 
 var ContinentalSpline = gospline.NewMonotoneSpline(
-	[]float64{-1, -0.9, -0.47, -0.43, -0.19, -0.1, 0, 0.03, 1},
+	[]float64{-1, -0.9, -0.47, -0.43, -0.19, -0.034, 0, 0.03, 1},
 	[]float64{1, 0.1, 0.03, 0.3, 0.41, 0.9, 0.9, 0.93, 0.98},
 )
 
