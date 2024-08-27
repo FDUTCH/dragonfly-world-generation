@@ -6,6 +6,7 @@ Progress:
   ☑ Biomes
   ☑ Terrain shape
   ☐ Surface and correct materials
+  ☑ Caves & pillars
   ☐ Terrain features
   ☐ Structures
   ☐ Nether and End dimensions
