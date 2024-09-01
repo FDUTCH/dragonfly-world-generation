@@ -2,6 +2,7 @@ package wgrandom
 
 import (
 	"math"
+
 	"github.com/aquilax/go-perlin"
 	"github.com/cnkei/gospline"
 )
@@ -27,8 +28,6 @@ const (
 	SEED_WEIRDNESS
 	SEED_SURFACE
 )
-
-type SubSeed int64
 
 type WGRandom struct {
 	Seed int64
@@ -74,4 +73,10 @@ var PVSpline = gospline.NewMonotoneSpline(
 
 func PeaksValleys(Weirdness float64) float64 {
 	return 1 - math.Abs((3*math.Abs(Weirdness))-2)
+}
+
+type Chance float64
+
+func NewChance(Numerator, Denumerator float64) Chance{
+	return Chance((Numerator / Denumerator) * 2 - 1)
 }

@@ -1,6 +1,8 @@
 package wgrandom
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestInterpolation(t *testing.T) {
 	for i := float64(-1); i < 20; i += 0.1 {

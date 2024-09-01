@@ -1,8 +1,5 @@
 package resourcecompiler
 
-import (
-	"os"
-)
 
 var definitionPath, structurePath string
 var resourcesLoaded bool
@@ -12,6 +9,7 @@ func SetPaths(DefinitionPath, StructurePath string){
 	resourcesLoaded = true
 
 	definitionPath, structurePath = DefinitionPath, StructurePath
+	_ = structurePath
 }
 
 func CompileAll(){
@@ -21,13 +19,15 @@ func CompileAll(){
 	
 	resourcesCompiled = true
 	CompileBiomes()
+	CompileFeatures()
+	CompileFeatureRules()
 
-	structures, err := os.ReadDir(structurePath)
-	if err != nil{
-		panic(err)
-	}
+	// structures, err := os.ReadDir(structurePath)
+	// if err != nil{
+	// 	panic(err)
+	// }
 
-	_ = structures
+	// _ = structures
 }
 
 func CheckForResources(){

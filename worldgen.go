@@ -2,6 +2,7 @@ package worldgen
 
 import (
 	"github.com/Ikarolyi/dragonfly-world-generation/biomemap"
+	"github.com/Ikarolyi/dragonfly-world-generation/features"
 	"github.com/Ikarolyi/dragonfly-world-generation/noisecaves"
 	"github.com/Ikarolyi/dragonfly-world-generation/resourcecompiler"
 	"github.com/Ikarolyi/dragonfly-world-generation/surface"
@@ -29,6 +30,7 @@ func (gen WorldGenerator) GenerateChunk(pos world.ChunkPos, chunk *chunk.Chunk) 
 	biomemap.FillChunk(pos, chunk, gen.WGRandom, gen.WGConfig)
 	surface.GenerateSurface(pos, chunk, gen.WGRandom)
 	noisecaves.GenerateNoiseCaves(pos, chunk, gen.WGRandom)
+	features.PopulateChunk(pos, chunk, gen.WGRandom)
 }
 
 func NewDefaultGenerator(Seed int64) func(world.Dimension) world.Generator {
