@@ -6,6 +6,7 @@ import (
 
 	"github.com/yosuke-furukawa/json5/encoding/json5"
 
+	"github.com/Ikarolyi/dragonfly-world-generation/biomemap"
 	"github.com/Ikarolyi/dragonfly-world-generation/surface"
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/item"
@@ -49,8 +50,7 @@ func findBlock(id string)uint32{
 		}
 	}
 
-	println(id + " not found, fallback to air")
-
+	// println(id + " not found, fallback to air")
 	// Fallback to air
 	return world.BlockRuntimeID(block.Air{})
 }
@@ -105,6 +105,7 @@ func CompileBiomes() {
 			}
 		}
 
+		// Storing surface configuration
 		if surfaceOk{
 			SeaFloorDepth := surfaceParams["sea_floor_depth"].(float64)
 			SeaFloorMaterial := surfaceParams["sea_floor_material"].(string)
@@ -122,6 +123,19 @@ func CompileBiomes() {
 				TopMaterial: findBlock(TopMaterial),
 				SeaMaterial: findBlock(SeaMaterial),
 			}
+		}
+
+		// Storing biome tags
+		tags, ok := biomeGroup["minecraft:tags"].(map[string]interface{})
+		if ok {
+			var newTags []string
+
+			otherTags := tags["tags"].([]interface{})
+			for _, tag := range otherTags{
+				newTags = append(newTags, tag.(string))
+			}
+
+			biomemap.BiomeTags[identifier] = newTags
 		}
 	}
 }

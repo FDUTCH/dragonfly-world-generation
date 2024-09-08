@@ -2,8 +2,10 @@ package features
 
 import (
 	"math/rand/v2"
+	"slices"
 
 	"github.com/Ikarolyi/dragonfly-world-generation/wgrandom"
+	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
@@ -15,12 +17,22 @@ var FeatureRuleTable []FeatureRule
 type Feature interface {
 	Identifier() string
 	Type() FeatureType
-	Build(*chunk.Chunk, FeaturePos)
+	Build(*chunk.Chunk, FeaturePos, *rand.Rand)
 }
 
 type ReplaceRule struct {
 	PlacesBlock uint32
 	MayReplace  []uint32
+}
+
+func TryAndReplace(allR []ReplaceRule, Pos cube.Pos, c *chunk.Chunk) {
+	bBefore := c.Block(uint8(Pos.X()), int16(Pos.Y()), uint8(Pos.Z()),0)
+	for _, r := range allR{
+		if slices.Contains(r.MayReplace, bBefore){
+			c.SetBlock(uint8(Pos.X()), int16(Pos.Y()), uint8(Pos.Z()), 0, r.PlacesBlock)
+			break
+		}
+	}
 }
 
 type FeatureType int
@@ -41,6 +53,12 @@ const (
 	TYPE_NOOP
 )
 
+func ChunkBBox(c *chunk.Chunk) cube.BBox{
+	min, max := c.Range().Min(), c.Range().Max()
+
+	return cube.Box(-0.1, float64(min), -0.1, 15.1, float64(max), 15.1)
+}
+
 type TreeFeature struct {
 	ID          string
 	TrunkHeight [2]int
@@ -55,7 +73,7 @@ func (tree TreeFeature) Type() FeatureType {
 	return TYPE_TREE
 }
 
-func (tree TreeFeature) Build(c *chunk.Chunk, f FeaturePos){
+func (tree TreeFeature) Build(c *chunk.Chunk, f FeaturePos, _ *rand.Rand){
 	_, _ = c, f
 }
 
@@ -67,7 +85,12 @@ func (f NopFeature) Identifier() string {
 	return f.ID
 }
 
-func (f NopFeature) Build(c *chunk.Chunk, fp FeaturePos){
+func (f NopFeature) Build(c *chunk.Chunk, fp FeaturePos, _ *rand.Rand){
+	if fp[0] > 0 && fp[0] < 16{
+		if fp[2] > 0 && fp[2] < 16{
+			c.SetBlock(uint8(fp[0]), int16(fp[1]), uint8(fp[2]), 0, world.BlockRuntimeID(block.Log{}))
+		} 
+	}
 	_, _ = c, fp
 }
 
@@ -78,7 +101,16 @@ func (f NopFeature) Type() FeatureType {
 
 type FeaturePos cube.Pos
 
-type FeatureCondition struct {
+func (f FeaturePos) X() int{
+	return f[0]
+}
+
+func (f FeaturePos) Y() int{
+	return f[1]
+}
+
+func (f FeaturePos) Z() int{
+	return f[2]
 }
 
 type CoordinateEvalOrder int
@@ -126,6 +158,7 @@ type FeatureRule struct {
 	Places string
 	Conditions   []FeatureCondition
 	Distribution FeatureDistribution
+	PlacementPass PlacementPassType
 }
 
 func FeatureRandom(x, z int64, ft FeatureType, seed int64) rand.Source {
@@ -150,7 +183,8 @@ func (fr FeatureRule) PopulateChunk(
 	// if fr.Distribution.X.DistributionType == UNIFORM{
 	// TODO other distibution types and coord eval orders
 
-	var candidateOrigins []FeaturePos
+	var origins []FeaturePos
+	var randSources []*rand.Rand
 
 	places := FeatureTable[fr.Places]
 	if places == nil{
@@ -176,13 +210,22 @@ func (fr FeatureRule) PopulateChunk(
 					(R.IntN(max(fr.Distribution.Y.Max-fr.Distribution.Y.Min, 1)) + fr.Distribution.Y.Min),
 					(R.IntN(max(fr.Distribution.Z.Max-fr.Distribution.Z.Min, 1)) + fr.Distribution.Z.Min),
 				}
-				candidateOrigins = append(candidateOrigins, pos)
+
+				scatter := fr.Distribution.ScatterChance.Eval(R)
+				if scatter{
+					origins = append(origins, pos)
+					randSources = append(randSources, R)
+				}
 			}
 		}
 	}
 
-	for _, pos := range candidateOrigins{
-		places.Build(chunk, pos)
+	for i, pos := range origins{
+		if EvalConditions(chunkPos, pos, fr.Conditions, WGRand){
+			if EvalPlacementPass(fr, pos, chunkPos, WGRand){
+				places.Build(chunk, pos, randSources[i])
+			}
+		}
 	}
 }
 

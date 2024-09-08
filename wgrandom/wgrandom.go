@@ -2,6 +2,7 @@ package wgrandom
 
 import (
 	"math"
+	"math/rand/v2"
 
 	"github.com/aquilax/go-perlin"
 	"github.com/cnkei/gospline"
@@ -77,6 +78,11 @@ func PeaksValleys(Weirdness float64) float64 {
 
 type Chance float64
 
-func NewChance(Numerator, Denumerator float64) Chance{
-	return Chance((Numerator / Denumerator) * 2 - 1)
+func NewChance(Numerator, Denominator float64) Chance{
+	return Chance((Numerator / Denominator) * 2 - 1)
+}
+
+func (c Chance) Eval(R *rand.Rand) bool{
+	chance := (c + 1) / 2
+	return R.Float64() <= float64(chance)
 }

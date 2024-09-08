@@ -83,11 +83,13 @@ func CompileFeatures() {
 		var root map[string]interface{}
 		var featureType features.FeatureType
 		for newFeatureType, rootType := range featureRootTypes {
+			featureType = features.FeatureType(newFeatureType)
+			
 			newRoot, ok := data[rootType]
 			if ok {
 				root = newRoot.(map[string]interface{})
+				break
 			}
-			featureType = features.FeatureType(newFeatureType)
 		}
 
 		if root == nil {
@@ -101,11 +103,23 @@ func CompileFeatures() {
 
 		switch featureType {
 		case features.TYPE_TREE:
-			trunk := root["trunk"].(map[string]interface{})
+			trunk, ok := root["trunk"].(map[string]interface{})
+			if !ok {
+				continue
+			}
 			newFeature = features.TreeFeature{
 				ID:          id,
 				TrunkHeight: [2]int{},
 				TrunkBlock:  woodBlockID(trunk["trunk_block"].(map[string]interface{}), false, cube.Y),
+			}
+		case features.TYPE_ORE:
+			replaceRules := root["replace_rules"].([]interface{})
+
+			Count := root["count"].(float64)
+			newFeature = features.OreFeature{
+				ID: id,
+				Count: int(Count),
+				ReplaceRule: ParseReplaceRules(replaceRules),
 			}
 		default:
 			newFeature = features.NopFeature{
@@ -134,7 +148,7 @@ func CompileFeatureRules() {
 		panic(err)
 	}
 
-	fileloop:
+fileloop:
 	for _, fr := range FeaturesDir {
 		featureRuleFile, err := os.ReadFile(filepath.Join(featuresPath, fr.Name()))
 		if err != err {
@@ -153,12 +167,12 @@ func CompileFeatureRules() {
 		places := description["places_feature"].(string)
 
 		distribution, ok := root["distribution"].(map[string]interface{})
-		if !ok{
+		if !ok {
 			continue fileloop
 		}
 
 		iterations, ok := distribution["iterations"].(float64)
-		if !ok{
+		if !ok {
 			continue fileloop
 		}
 
@@ -167,11 +181,11 @@ func CompileFeatureRules() {
 		var scatterChance wgrandom.Chance
 		if scatterChanceOk {
 			s, ok := scatterChanceRaw.(map[string]interface{})
-			if !ok{
+			if !ok {
 				continue fileloop
 			}
-			scatterChanceNumerator, scatterChanceDenumerator := s["denominator"].(float64), s["numerator"].(float64)
-			scatterChance = wgrandom.NewChance(scatterChanceNumerator, scatterChanceDenumerator)
+			scatterChanceNumerator, scatterChanceDenominator := s["numerator"].(float64), s["denominator"].(float64)
+			scatterChance = wgrandom.NewChance(scatterChanceNumerator, scatterChanceDenominator)
 		} else {
 			scatterChance = wgrandom.NewChance(1, 1)
 		}
@@ -197,15 +211,14 @@ func CompileFeatureRules() {
 				//TODO: grid_size, step_size
 
 				min, ok := extent[0].(float64)
-				if !ok{
+				if !ok {
 					continue fileloop
 				}
 
 				max, ok := extent[1].(float64)
-				if !ok{
+				if !ok {
 					continue fileloop
 				}
-
 
 				xyz[i] = features.CoordRange{
 					DistributionType: d,
@@ -215,29 +228,50 @@ func CompileFeatureRules() {
 				continue
 			} else {
 				simple, ok := value.(float64)
-				if !ok{
+				if !ok {
 					continue fileloop
 				}
 				xyz[i] = features.ConstCoordRange(int(simple))
 			}
 		}
 
+		// Distribution coordinate eval order
 		var coordinateEvalOrder features.CoordinateEvalOrder
 		rawCoordinateEvalOrder, ok := distribution["coordinate_eval_order"]
-		if ok{
+		if ok {
 			for i, str := range coordinateEvalOrderStrings {
-				if str == rawCoordinateEvalOrder.(string){
+				if str == rawCoordinateEvalOrder.(string) {
 					coordinateEvalOrder = features.CoordinateEvalOrder(i)
 				}
 			}
-		}else{
+		} else {
 			coordinateEvalOrder = features.XZY
 		}
 
+		// Conditions
+		var Conditions = []features.FeatureCondition{}
+		var PlacementPass = features.SURFACE_PASS
+
+		conditions, ok := root["conditions"].(map[string]interface{})
+		if ok {
+			biomeFilters, ok := conditions["minecraft:biome_filter"].([]interface{})
+
+			var p = map[string]features.PlacementPassType{
+				"surface_pass":     features.SURFACE_PASS,
+				"underground_pass": features.UNDERGROUND_PASS,
+			}
+			PlacementPass = p[conditions["placement_pass"].(string)]
+
+			if ok {
+				BiomeFilter(biomeFilters, &Conditions)
+			}
+		}
+
+		// Storing the feature rule ready to use
 		features.FeatureRuleTable = append(features.FeatureRuleTable, features.FeatureRule{
 			Identifier: id,
 			Places:     places,
-			Conditions: []features.FeatureCondition{},
+			Conditions: Conditions,
 			Distribution: features.FeatureDistribution{
 				Iterations:          int(iterations),
 				ScatterChance:       scatterChance,
@@ -246,6 +280,56 @@ func CompileFeatureRules() {
 				Y:                   xyz[1],
 				Z:                   xyz[2],
 			},
+			PlacementPass: PlacementPass,
 		})
 	}
+}
+
+func BiomeFilter(Filters []interface{}, Conditions *[]features.FeatureCondition) {
+	var operators = map[string]features.Operator{
+		"==": features.OP_EQ,
+		"!=": features.OP_NOT_EQ,
+	}
+	for _, f := range Filters {
+		filter := f.(map[string]interface{})
+		test, ok := filter["test"].(string)
+		if !ok {
+			// TODO: compound filters
+			continue
+		}
+		operator := filter["operator"].(string)
+		value := filter["value"].(string)
+
+		c := append(
+			*Conditions,
+			features.FeatureCondition{
+				Type:     features.TYPE_BIOME_FILTER,
+				Test:     test,
+				Operator: operators[operator],
+				Value:    value,
+			},
+		)
+		Conditions = &c
+	}
+}
+
+
+func ParseReplaceRules(replaceRules []interface{}) []features.ReplaceRule {
+	var result []features.ReplaceRule
+	for _, replaceRuleR := range replaceRules {
+		replaceRule := replaceRuleR.(map[string]interface{})
+		PlacesBlock := JsonBlock(replaceRule["places_block"])
+		var MayReplace []uint32
+		
+		for _, replacable := range replaceRule["may_replace"].([]interface{}){
+			MayReplace = append(MayReplace, JsonBlock(replacable))
+		}
+
+		result = append(result, features.ReplaceRule{
+			PlacesBlock: PlacesBlock,
+			MayReplace:  MayReplace,
+		})
+	}
+
+	return result
 }

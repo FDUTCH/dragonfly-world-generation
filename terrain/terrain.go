@@ -3,6 +3,7 @@ package terrain
 import (
 	"github.com/Ikarolyi/dragonfly-world-generation/wgrandom"
 	"github.com/df-mc/dragonfly/server/block"
+	"github.com/df-mc/dragonfly/server/block/cube"
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 )
@@ -29,15 +30,15 @@ func GenerateTerrain(
 			E := wgrandom.ErosionSpline.At(WGRand.Erosion.Noise2D(NoiseX, NoiseZ))
 			PV := wgrandom.PVSpline.At(wgrandom.PeaksValleys(WGRand.Weirdness.Noise2D(NoiseX, NoiseZ)))
 
-			height := (E*175) + (C*39) + (PV * 15)
+			height := (E * 175) + (C * 39) + (PV * 15)
 
 			for y := min; y < max; y++ {
 				NoiseY := float64(y) / wgrandom.OVERWORLD_HEIGHT_SCALE
-				D := WGRand.Density.Noise3D(NoiseX * 3, NoiseY * 3, NoiseZ * 3)
+				D := WGRand.Density.Noise3D(NoiseX*3, NoiseY*3, NoiseZ*3)
 				Squish := height - float64(y)
 
 				// solid := y < int16(height)
-				solid := D * 30 + Squish > 0
+				solid := D*30+Squish > 0
 				if solid {
 					chunk.SetBlock(x, y, z, 0, world.BlockRuntimeID(block.Stone{}))
 				} else if y < SEA_LEVEL {
@@ -46,4 +47,25 @@ func GenerateTerrain(
 			}
 		}
 	}
+}
+
+// Check if a block is filled or not.
+// This is not the method used to make the terrain, because
+func GetBlock(Pos cube.Pos, WGRand *wgrandom.WGRandom) bool {
+	x, y, z := Pos.X(), Pos.Y(), Pos.Z()
+
+	NoiseX, NoiseZ := (float64(x))/wgrandom.OVERWORLD_SCALE, (float64(z))/wgrandom.OVERWORLD_SCALE
+	C := wgrandom.ContinentalSpline.At(WGRand.Continentalness.Noise2D(NoiseX, NoiseZ))
+	E := wgrandom.ErosionSpline.At(WGRand.Erosion.Noise2D(NoiseX, NoiseZ))
+	PV := wgrandom.PVSpline.At(wgrandom.PeaksValleys(WGRand.Weirdness.Noise2D(NoiseX, NoiseZ)))
+
+	height := (E * 175) + (C * 39) + (PV * 15)
+
+	NoiseY := float64(y) / wgrandom.OVERWORLD_HEIGHT_SCALE
+	D := WGRand.Density.Noise3D(NoiseX*3, NoiseY*3, NoiseZ*3)
+	Squish := height - float64(y)
+
+	solid := D*30+Squish > 0
+
+	return solid
 }

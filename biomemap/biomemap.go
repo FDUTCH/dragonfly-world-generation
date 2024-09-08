@@ -7,6 +7,8 @@ import (
 	"github.com/df-mc/dragonfly/server/world/chunk"
 )
 
+var BiomeTags map[string][]string
+
 // 0 ~ 6
 func ErosionIndex(Erosion float64) int {
 	if Erosion < -0.78 {
@@ -135,6 +137,20 @@ func SelectBiome(Continentalness, Erosion, Temperature, Humidity, Weirdness floa
 	return uint32(biome.EncodeBiome())
 }
 
+func Column(chunkWorldPos [2]float64, X, Z float64, WGRand *wgrandom.WGRandom) uint32{
+	NoiseX, NoiseY := (chunkWorldPos[0]+X)/wgrandom.OVERWORLD_SCALE, (chunkWorldPos[1]+Z)/wgrandom.OVERWORLD_SCALE
+
+	Continentalness := WGRand.Continentalness.Noise2D(NoiseX, NoiseY)
+	Erosion := WGRand.Erosion.Noise2D(NoiseX, NoiseY)
+	Temperature := WGRand.Temperature.Noise2D(NoiseX, NoiseY)
+	Humidity := WGRand.Humidity.Noise2D(NoiseX, NoiseY)
+	Weirdness := WGRand.Weirdness.Noise2D(NoiseX, NoiseY)
+
+	b := SelectBiome(Continentalness, Erosion, Temperature, Humidity, Weirdness)
+
+	return b
+}
+
 func FillChunk(
 	chunkPos world.ChunkPos,
 	chunk *chunk.Chunk,
@@ -142,19 +158,11 @@ func FillChunk(
 	WGConfig worldgenconfig.WGConfig,
 ) {
 	min, max := int16(chunk.Range().Min()), int16(chunk.Range().Max())
-	chunkWorldPos := []float64{float64(chunkPos[0]) * 16, float64(chunkPos[1]) * 16}
+	chunkWorldPos := [2]float64{float64(chunkPos[0]) * 16, float64(chunkPos[1]) * 16}
 
 	for x := uint8(0); x < 16; x++ {
 		for z := uint8(0); z < 16; z++ {
-			NoiseX, NoiseY := (chunkWorldPos[0]+float64(x))/wgrandom.OVERWORLD_SCALE, (chunkWorldPos[1]+float64(z))/wgrandom.OVERWORLD_SCALE
-
-			Continentalness := WGRand.Continentalness.Noise2D(NoiseX, NoiseY)
-			Erosion := WGRand.Erosion.Noise2D(NoiseX, NoiseY)
-			Temperature := WGRand.Temperature.Noise2D(NoiseX, NoiseY)
-			Humidity := WGRand.Humidity.Noise2D(NoiseX, NoiseY)
-			Weirdness := WGRand.Weirdness.Noise2D(NoiseX, NoiseY)
-
-			b := SelectBiome(Continentalness, Erosion, Temperature, Humidity, Weirdness)
+			b := Column(chunkWorldPos, float64(x), float64(z), WGRand)
 
 			// Apply Biome only on every subchunk
 			for y := min; y < max; y++ {
