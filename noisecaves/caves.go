@@ -1,6 +1,7 @@
 package noisecaves
 
 import (
+	"github.com/Ikarolyi/dragonfly-world-generation/internal"
 	"math"
 
 	"github.com/Ikarolyi/dragonfly-world-generation/terrain"
@@ -9,8 +10,6 @@ import (
 	"github.com/df-mc/dragonfly/server/world"
 	"github.com/df-mc/dragonfly/server/world/chunk"
 )
-
-const noiseOffset = 30000000
 
 func invSqrtAbs(x float64) float64 {
 	return 1 / math.Sqrt(math.Abs(x))
@@ -22,8 +21,8 @@ func GenerateNoiseCaves(
 	WGRand *wgrandom.WGRandom,
 ) {
 	globalX, globalZ := float64(chunkPos.X())*16, float64(chunkPos.Z())*16
-	globalZ += noiseOffset
-	globalZ += noiseOffset
+	globalZ += internal.NoiseOffset
+	globalZ += internal.NoiseOffset
 	min := int16(chunk.Range().Min())
 	for x := uint8(0); x < 16; x++ {
 		for z := uint8(0); z < 16; z++ {

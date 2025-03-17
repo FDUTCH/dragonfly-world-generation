@@ -1,6 +1,7 @@
 package terrain
 
 import (
+	"github.com/Ikarolyi/dragonfly-world-generation/internal"
 	"github.com/Ikarolyi/dragonfly-world-generation/wgrandom"
 	"github.com/df-mc/dragonfly/server/block"
 	"github.com/df-mc/dragonfly/server/block/cube"
@@ -53,6 +54,9 @@ func GenerateTerrain(
 // This is not the method used to make the terrain, because
 func GetBlock(Pos cube.Pos, WGRand *wgrandom.WGRandom) bool {
 	x, y, z := Pos.X(), Pos.Y(), Pos.Z()
+
+	x += internal.NoiseOffset
+	z += internal.NoiseOffset
 
 	NoiseX, NoiseZ := (float64(x))/wgrandom.OVERWORLD_SCALE, (float64(z))/wgrandom.OVERWORLD_SCALE
 	C := wgrandom.ContinentalSpline.At(WGRand.Continentalness.Noise2D(NoiseX, NoiseZ))
