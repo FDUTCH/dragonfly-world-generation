@@ -1,6 +1,7 @@
 package biomemap
 
 import (
+	"github.com/Ikarolyi/dragonfly-world-generation/internal"
 	"github.com/Ikarolyi/dragonfly-world-generation/wgrandom"
 	"github.com/Ikarolyi/dragonfly-world-generation/worldgenconfig"
 	"github.com/df-mc/dragonfly/server/world"
@@ -137,8 +138,11 @@ func SelectBiome(Continentalness, Erosion, Temperature, Humidity, Weirdness floa
 	return uint32(biome.EncodeBiome())
 }
 
-func Column(chunkWorldPos [2]float64, X, Z float64, WGRand *wgrandom.WGRandom) uint32{
+func Column(chunkWorldPos [2]float64, X, Z float64, WGRand *wgrandom.WGRandom) uint32 {
 	NoiseX, NoiseY := (chunkWorldPos[0]+X)/wgrandom.OVERWORLD_SCALE, (chunkWorldPos[1]+Z)/wgrandom.OVERWORLD_SCALE
+
+	NoiseX += internal.NoiseOffset
+	NoiseY += internal.NoiseOffset
 
 	Continentalness := WGRand.Continentalness.Noise2D(NoiseX, NoiseY)
 	Erosion := WGRand.Erosion.Noise2D(NoiseX, NoiseY)
@@ -167,7 +171,7 @@ func FillChunk(
 			// Apply Biome only on every subchunk
 			for y := min; y < max; y++ {
 				chunk.SetBiome(x, y, z, b)
-			} 
+			}
 		}
 	}
 }
