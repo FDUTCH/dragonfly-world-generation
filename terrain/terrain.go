@@ -27,6 +27,10 @@ func GenerateTerrain(
 	for x := uint8(0); x < 16; x++ {
 		for z := uint8(0); z < 16; z++ {
 			NoiseX, NoiseZ := (chunkWorldPos[0]+float64(x))/wgrandom.OVERWORLD_SCALE, (chunkWorldPos[1]+float64(z))/wgrandom.OVERWORLD_SCALE
+
+			NoiseX += internal.NoiseOffset
+			NoiseZ += internal.NoiseOffset
+
 			C := wgrandom.ContinentalSpline.At(WGRand.Continentalness.Noise2D(NoiseX, NoiseZ))
 			E := wgrandom.ErosionSpline.At(WGRand.Erosion.Noise2D(NoiseX, NoiseZ))
 			PV := wgrandom.PVSpline.At(wgrandom.PeaksValleys(WGRand.Weirdness.Noise2D(NoiseX, NoiseZ)))
